@@ -1,15 +1,17 @@
 # 1. Variables
-CXX      = g++
-CXXFLAGS = -Wall -Wextra -std=c++17 -O2
-TARGET   = target/executable
+CXX         = g++
+CXXFLAGS    = -Wall -Wextra -std=c++23 -O2
+TARGET_EXEC = executable
 
 # Directories
-SRC_DIR  = src
-OBJ_DIR  = obj
+SRC_DIR    = src
+OBJ_DIR    = obj
+TARGET_DIR = target
 
-# Files (Paths updated to include directories)
-SRCS     = $(wildcard $(SRC_DIR)/*.cpp)
-OBJS     = $(SRCS:$(SRC_DIR)/%.cpp=$(OBJ_DIR)/%.o)
+# Files (Updated to find all nested .cpp files)
+SRCS   = $(shell find $(SRC_DIR) -name "*.cpp")
+OBJS   = $(SRCS:$(SRC_DIR)/%.cpp=$(OBJ_DIR)/%.o)
+TARGET = $(TARGET_DIR)/$(TARGET_EXEC)
 
 # 2. Phony Targets
 .PHONY: all clean run
@@ -18,21 +20,21 @@ OBJS     = $(SRCS:$(SRC_DIR)/%.cpp=$(OBJ_DIR)/%.o)
 all: $(TARGET)
 
 # 4. Linking Rule
-$(TARGET): $(OBJS)
+$(TARGET): $(OBJS) | $(TARGET_DIR)
 	$(CXX) $(CXXFLAGS) -o $@ $^
 
-# 5. Compilation Rule (Compiles src/*.cpp into obj/*.o)
-$(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp | $(OBJ_DIR)
+# 5. Compilation Rule (Compiles src/**/*.cpp into obj/**/*.o)
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
+	@mkdir -p $(dir $@)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-# Create the obj directory if it doesn't exist
-$(OBJ_DIR):
-	mkdir -p $(OBJ_DIR)
+# Create target directory if it doesn't exist
+$(TARGET_DIR):
+	mkdir -p $(TARGET_DIR)
 
 # 6. Utility Rules
 run: $(TARGET)
 	./$(TARGET)
 
 clean:
-	rm -rf $(OBJ_DIR) $(TARGET)
-
+	rm -rf $(OBJ_DIR) $(TARGET_DIR)
