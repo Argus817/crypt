@@ -92,7 +92,7 @@ void inv_mix_columns(vector <vector <int>>& s) {
 
 vector <vector <vector <int>>> expand_key(vector <byte>& master_key) {  //assume master_key is 16-bytes
     vector <vector <int>> key_columns { bytes2matrix(master_key) };
-    int iteration_size { master_key.size() / 4 };
+    int iteration_size { 4 };
 
     int i { 1 };
     while (key_columns.size() < static_cast<size_t>((n_rounds + 1) * 4)) {
