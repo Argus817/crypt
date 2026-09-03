@@ -1,40 +1,136 @@
-#include "processor.hpp"
-
 #include <filesystem>
 #include <cassert>
 #include <iostream>
+#include <fstream>
+#include <vector>
+#include <string_view>
+
+#include "AES/aes.hpp"
+#include "Error/error.hpp"
+
+#include "processor.hpp"
 
 using namespace std;
 namespace fs = filesystem;
 
-void process_file(fs::path filepath, string_view action) {
-    assert(fs::exists(filepath) && fs::is_regular_file(filepath));
+constexpr size_t BUFFSIZE = 4096*1024, BLOCKSIZE = 16;
+inline vector <unsigned char> KEY(BLOCKSIZE, static_cast<unsigned char>(69));
 
-    vector <byte> key(16, static_cast<byte>(4)), ciphertext(16, static_cast<byte>(5));
+void encrypt_file(fs::path filepath, vector <unsigned char>& key) {
+    fs::path newFilepath = filepath.parent_path() / ("enc_"s+filepath.stem().string()+filepath.extension().string());
 
-    if (action == "encrypt") {
-        cout << "Starting encryption process...\n";
-        vector <byte> plaintext = encrypt(key, ciphertext);
-        for (int i=0; i<16; i++) {
-            cout << static_cast<int>(plaintext[i]) << ' ';
-        }
-        cout << endl;
-    } else {
-        cout << "Starting decryption process...\n";
-        vector <byte> plaintext = decrypt(key, ciphertext);
-        for (int i=0; i<16; i++) {
-            cout << static_cast<int>(plaintext[i]) << ' ';
-        }
-        cout << endl;
+    ifstream infile(filepath, ios::binary);
+    if (!infile.is_open()) {
+        throwErrorCode(ErrorCodes::INPUT_FILE_ERROR, filepath.string());
     }
 
-    cout << filepath << ' ' << action << endl;
+    ofstream outfile(newFilepath, ios::binary);
+    if (!outfile.is_open()) {
+        throwErrorCode(ErrorCodes::OUTPUT_FILE_ERROR, newFilepath.string());
+    }
+
+    vector <unsigned char> buffer(BUFFSIZE);
+
+    while (infile) {
+        infile.read(reinterpret_cast<char*>(buffer.data()), BUFFSIZE);
+        size_t bytesRead { static_cast<size_t>(infile.gcount()) };
+
+        if (bytesRead == 0) break;
+
+        size_t totalBytes = bytesRead;
+
+        if (bytesRead < BUFFSIZE || infile.peek() == EOF) {
+            size_t remainder { bytesRead % BLOCKSIZE };
+            size_t required { BLOCKSIZE - remainder };
+            totalBytes += required;
+
+            if (totalBytes > buffer.size()) {
+                buffer.resize(totalBytes);
+            }
+
+            for (size_t i {bytesRead}; i < totalBytes; i++) {
+                buffer[i] = static_cast<unsigned char>(required);
+            }
+        }
+
+        for (size_t i=0; i<totalBytes; i += BLOCKSIZE) {
+            encrypt_block(key, &buffer[i]);
+        }
+        outfile.write(reinterpret_cast<char*>(buffer.data()), totalBytes);
+    }
+
+    infile.close();
+    fs::remove(filepath);
+}
+
+inline fs::path remove_filename_prefix(const fs::path& full_path, std::string_view prefix)
+{
+    std::string filename = full_path.filename().string();
+
+    if (filename.rfind(prefix, 0) == 0)
+    {
+        filename.erase(0, prefix.length());
+    }
+
+    return full_path.parent_path() / filename;
+}
+
+void decrypt_file(fs::path filepath, vector <unsigned char>& key) {
+    fs::path newFilepath = remove_filename_prefix(filepath, "enc_");
+
+    ifstream infile(filepath, ios::binary);
+    if (!infile.is_open()) {
+        throwErrorCode(ErrorCodes::INPUT_FILE_ERROR, filepath.string());
+    }
+
+    ofstream outfile(newFilepath, ios::binary);
+    if (!outfile.is_open()) {
+        throwErrorCode(ErrorCodes::OUTPUT_FILE_ERROR, newFilepath.string());
+    }
+
+    vector <unsigned char> buffer(BUFFSIZE);
+
+    uintmax_t fileSize = fs::file_size(filepath);
+    size_t iterations = fileSize / BUFFSIZE;
+    if (fileSize % BUFFSIZE) iterations++;
+
+    while (iterations--) {
+        infile.read(reinterpret_cast<char*>(buffer.data()), BUFFSIZE);
+        size_t bytesRead { static_cast<size_t>(infile.gcount()) };
+
+        for (size_t i=0; i<bytesRead; i += BLOCKSIZE) {
+            decrypt_block(key, &buffer[i]);
+        }
+
+        if (iterations == 0) {
+            bytesRead -= static_cast<size_t>(buffer[bytesRead-1]);
+        }
+
+        outfile.write(reinterpret_cast<char*>(buffer.data()), bytesRead);
+    }
+    infile.close();
+    fs::remove(filepath);
+}
+
+void process_file(fs::path filepath, string_view action) {
+    assert(fs::exists(filepath) && fs::is_regular_file(filepath));
+    string_view filename { filepath.stem().c_str() };
+
+    if (action == "encrypt" && !filename.starts_with("enc_")) {
+        cout << "Encrypting " << filepath.filename() << endl; 
+        encrypt_file(filepath, KEY);
+    } else if (action == "decrypt" && filename.starts_with("enc_")) {
+        cout << "Decrypting " << filepath.filename() << endl;
+        decrypt_file(filepath, KEY);
+    }
 }
 
 void process_dir(fs::path dirPath, string_view action) {
     assert(fs::exists(dirPath) && fs::is_directory(dirPath));
 
     for (const auto& entry : fs::recursive_directory_iterator(dirPath)) {
-        process_file(entry.path(), action);
+        if (fs::is_regular_file(entry.path()))
+            process_file(entry.path(), action);
     }
+    cerr << "\nWorked in " << 1000*((double)clock())/(double)CLOCKS_PER_SEC<< "ms \n";
 }

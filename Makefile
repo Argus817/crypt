@@ -13,6 +13,8 @@ SRCS   = $(shell find $(SRC_DIR) -name "*.cpp")
 OBJS   = $(SRCS:$(SRC_DIR)/%.cpp=$(OBJ_DIR)/%.o)
 TARGET = $(TARGET_DIR)/$(TARGET_EXEC)
 
+ARGS ?= 
+
 # 2. Phony Targets
 .PHONY: all clean run
 
@@ -34,7 +36,7 @@ $(TARGET_DIR):
 
 # 6. Utility Rules
 run: $(TARGET)
-	./$(TARGET)
+	./$(TARGET) $(ARGS)
 
 clean:
 	rm -rf $(OBJ_DIR) $(TARGET_DIR)

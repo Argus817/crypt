@@ -1,11 +1,10 @@
-#include "common.hpp"
+#include <vector>
 
-std::vector <std::byte> decrypt(
-    std::vector <std::byte>& key,
-    std::vector <std::byte>& ciphertext
+void encrypt_block(
+    std::vector <unsigned char>& key,
+    unsigned char* plaintext
 );
-
-std::vector <std::byte> encrypt(
-    std::vector <std::byte>& key,
-    std::vector <std::byte>& plaintext
+void decrypt_block(
+    std::vector <unsigned char>& key,
+    unsigned char* ciphertext
 );

@@ -50,20 +50,21 @@ inline const std::vector <int> r_con{
 constexpr int n_rounds { 10 };
 
 std::vector <std::vector <int>> bytes2matrix(
-    std::vector <std::byte>& text
+    unsigned char* text
 );
-std::vector <std::byte> matrix2bytes(
-    std::vector <std::vector <int>>& matrix
+void matrix2bytes(
+    std::vector <std::vector <int>>& matrix,
+    unsigned char* text
 );
 void shift_rows(std::vector <std::vector <int>>& s);
 void inv_shift_rows(std::vector <std::vector <int>>& s);
 void mix_columns(std::vector <std::vector <int>>& s);
 void inv_mix_columns(std::vector <std::vector <int>>& s);
 std::vector <std::vector <std::vector <int>>> expand_key(
-    std::vector <std::byte>& master_key
+    std::vector <unsigned char>& master_key
 );
 std::vector <std::vector <std::vector <int>>> expand_key(
-    std::vector <std::byte>& master_key
+    std::vector <unsigned char>& master_key
 );
 void add_round_key(
     std::vector <std::vector <int>>& s, 

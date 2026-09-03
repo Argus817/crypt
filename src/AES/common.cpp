@@ -1,13 +1,11 @@
-#include "common.hpp"
-
 #include <vector>
 #include <cassert>
 
+#include "common.hpp"
+
 using namespace std;
 
-vector <vector <int>> bytes2matrix(vector <byte>& text) {
-    assert(text.size() == 16);
-
+vector <vector <int>> bytes2matrix(unsigned char* text) {
     vector <vector <int>> matrix(4, vector<int>(4));
     for (int i=0; i<16; i++) {
         matrix[i/4][i%4] = static_cast<int>(text[i]);
@@ -15,14 +13,12 @@ vector <vector <int>> bytes2matrix(vector <byte>& text) {
     return matrix;
 }
 
-vector <byte> matrix2bytes(vector <vector <int>>& matrix) {
+void matrix2bytes(vector <vector <int>>& matrix, unsigned char* text) {
     assert(matrix.size() == 4 && matrix[0].size() == 4);
 
-    vector <byte> text(16);
     for (int i=0; i<16; i++) {
-        text[i] = static_cast<byte>(matrix[i/4][i%4]);
+        text[i] = static_cast<unsigned char>(matrix[i/4][i%4]);
     }
-    return text;
 }
 
 void shift_rows(vector <vector <int>>& s) {
@@ -90,8 +86,8 @@ void inv_mix_columns(vector <vector <int>>& s) {
     mix_columns(s);
 }
 
-vector <vector <vector <int>>> expand_key(vector <byte>& master_key) {  //assume master_key is 16-bytes
-    vector <vector <int>> key_columns { bytes2matrix(master_key) };
+vector <vector <vector <int>>> expand_key(vector <unsigned char>& master_key) {  //assume master_key is 16-bytes
+    vector <vector <int>> key_columns { bytes2matrix(master_key.data()) };
     int iteration_size { 4 };
 
     int i { 1 };
