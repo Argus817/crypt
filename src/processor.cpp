@@ -4,6 +4,7 @@
 #include <fstream>
 #include <vector>
 #include <string_view>
+#include <chrono>
 
 #include "AES/aes.hpp"
 #include "Error/error.hpp"
@@ -16,7 +17,7 @@ namespace fs = filesystem;
 
 inline vector <unsigned char> KEY(BLOCKSIZE, static_cast<unsigned char>(69));
 
-void encrypt_file(fs::path filepath, vector <unsigned char>& key) {
+void encrypt_file(fs::path filepath, AES& cipher) {
     fs::path newFilepath = filepath.parent_path() / ("enc_"s+filepath.stem().string()+filepath.extension().string());
 
     ifstream infile(filepath, ios::binary);
@@ -30,7 +31,6 @@ void encrypt_file(fs::path filepath, vector <unsigned char>& key) {
     }
 
     vector <unsigned char> buffer(BUFFSIZE);
-    AES cipher(key);
 
     while (infile) {
         infile.read(reinterpret_cast<char*>(buffer.data()), BUFFSIZE);
@@ -76,7 +76,7 @@ inline fs::path remove_filename_prefix(const fs::path& full_path, std::string_vi
     return full_path.parent_path() / filename;
 }
 
-void decrypt_file(fs::path filepath, vector <unsigned char>& key) {
+void decrypt_file(fs::path filepath, AES& cipher) {
     fs::path newFilepath = remove_filename_prefix(filepath, "enc_");
 
     ifstream infile(filepath, ios::binary);
@@ -90,7 +90,6 @@ void decrypt_file(fs::path filepath, vector <unsigned char>& key) {
     }
 
     vector <unsigned char> buffer(BUFFSIZE);
-    AES cipher(key);
 
     uintmax_t fileSize = fs::file_size(filepath);
     size_t iterations = fileSize / BUFFSIZE;
@@ -114,25 +113,31 @@ void decrypt_file(fs::path filepath, vector <unsigned char>& key) {
     fs::remove(filepath);
 }
 
-void process_file(fs::path filepath, string_view action) {
+void process_file(fs::path filepath, string_view action, AES& cipher) {
+    auto start = chrono::high_resolution_clock::now();
     assert(fs::exists(filepath) && fs::is_regular_file(filepath));
     string_view filename { filepath.stem().c_str() };
 
     if (action == "encrypt" && !filename.starts_with("enc_")) {
         cout << "Encrypting " << filepath.filename() << endl; 
-        encrypt_file(filepath, KEY);
+        encrypt_file(filepath, cipher);
     } else if (action == "decrypt" && filename.starts_with("enc_")) {
         cout << "Decrypting " << filepath.filename() << endl;
-        decrypt_file(filepath, KEY);
+        decrypt_file(filepath, cipher);
     }
+
+    auto end = chrono::high_resolution_clock::now();
+    auto duration = chrono::duration_cast<chrono::milliseconds>(end-start);
+    cout << filepath.filename().string() << " " << action << "ed in " << duration << "\n" << endl;
 }
 
 void process_dir(fs::path dirPath, string_view action) {
     assert(fs::exists(dirPath) && fs::is_directory(dirPath));
 
+    AES cipher(KEY);
+
     for (const auto& entry : fs::recursive_directory_iterator(dirPath)) {
         if (fs::is_regular_file(entry.path()))
-            process_file(entry.path(), action);
+            process_file(entry.path(), action, cipher);
     }
-    cerr << "\nWorked in " << 1000*((double)clock())/(double)CLOCKS_PER_SEC<< "ms \n";
 }
