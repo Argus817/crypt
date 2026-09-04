@@ -7,13 +7,13 @@
 
 #include "AES/aes.hpp"
 #include "Error/error.hpp"
+#include "AES/constants.hpp"
 
 #include "processor.hpp"
 
 using namespace std;
 namespace fs = filesystem;
 
-constexpr size_t BUFFSIZE = 4096*1024, BLOCKSIZE = 16;
 inline vector <unsigned char> KEY(BLOCKSIZE, static_cast<unsigned char>(69));
 
 void encrypt_file(fs::path filepath, vector <unsigned char>& key) {

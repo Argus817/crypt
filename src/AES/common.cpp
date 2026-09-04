@@ -1,6 +1,8 @@
 #include <vector>
 #include <cassert>
 
+#include "constants.hpp"
+
 #include "common.hpp"
 
 using namespace std;
