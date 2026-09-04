@@ -7,9 +7,9 @@
 
 using namespace std;
 
-void encrypt_block(vector <unsigned char>& key, unsigned char* plaintext) {
-    std::vector <std::vector <std::vector <int>>> round_keys { expand_key(key) };
+AES::AES(vector <unsigned char>& key) : round_keys{ expand_key(key) } {}
 
+void AES::encrypt_block(unsigned char* plaintext) {
     std::vector <std::vector <int>> state { bytes2matrix(plaintext) };
     add_round_key(state, round_keys[0]);
     sub_bytes(state);
@@ -26,9 +26,7 @@ void encrypt_block(vector <unsigned char>& key, unsigned char* plaintext) {
     matrix2bytes(state, plaintext);
 }
 
-void decrypt_block(vector <unsigned char>& key, unsigned char* ciphertext) {
-    std::vector <std::vector <std::vector <int>>> round_keys { expand_key(key) };
-
+void AES::decrypt_block(unsigned char* ciphertext) {
     std::vector <std::vector <int>> state { bytes2matrix(ciphertext) };
     add_round_key(state, round_keys[n_rounds]);
 

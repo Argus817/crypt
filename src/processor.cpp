@@ -30,6 +30,7 @@ void encrypt_file(fs::path filepath, vector <unsigned char>& key) {
     }
 
     vector <unsigned char> buffer(BUFFSIZE);
+    AES cipher(key);
 
     while (infile) {
         infile.read(reinterpret_cast<char*>(buffer.data()), BUFFSIZE);
@@ -54,7 +55,7 @@ void encrypt_file(fs::path filepath, vector <unsigned char>& key) {
         }
 
         for (size_t i=0; i<totalBytes; i += BLOCKSIZE) {
-            encrypt_block(key, &buffer[i]);
+            cipher.encrypt_block(&buffer[i]);
         }
         outfile.write(reinterpret_cast<char*>(buffer.data()), totalBytes);
     }
@@ -89,6 +90,7 @@ void decrypt_file(fs::path filepath, vector <unsigned char>& key) {
     }
 
     vector <unsigned char> buffer(BUFFSIZE);
+    AES cipher(key);
 
     uintmax_t fileSize = fs::file_size(filepath);
     size_t iterations = fileSize / BUFFSIZE;
@@ -99,7 +101,7 @@ void decrypt_file(fs::path filepath, vector <unsigned char>& key) {
         size_t bytesRead { static_cast<size_t>(infile.gcount()) };
 
         for (size_t i=0; i<bytesRead; i += BLOCKSIZE) {
-            decrypt_block(key, &buffer[i]);
+            cipher.decrypt_block(&buffer[i]);
         }
 
         if (iterations == 0) {

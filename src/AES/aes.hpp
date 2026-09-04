@@ -1,10 +1,16 @@
 #include <vector>
 
-void encrypt_block(
-    std::vector <unsigned char>& key,
-    unsigned char* plaintext
-);
-void decrypt_block(
-    std::vector <unsigned char>& key,
-    unsigned char* ciphertext
-);
+class AES {
+private:
+    std::vector <std::vector <std::vector <int>>> round_keys;
+
+public:
+    AES(std::vector <unsigned char>& key);
+
+    void encrypt_block(
+        unsigned char* plaintext
+    );
+    void decrypt_block(
+        unsigned char* ciphertext
+    );
+};
