@@ -2,6 +2,9 @@
 
 #include <array>
 
+using StateColumn = std::array <int, 4>;
+using State = std::array <StateColumn, 4>;
+
 constexpr size_t BUFFSIZE = 4096*1024;
 constexpr size_t BLOCKSIZE = 16;
 constexpr size_t n_rounds { 10 };

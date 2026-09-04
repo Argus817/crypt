@@ -10,7 +10,7 @@ using namespace std;
 AES::AES(vector <unsigned char>& key) : round_keys{ expand_key(key) } {}
 
 void AES::encrypt_block(unsigned char* plaintext) {
-    std::vector <std::vector <int>> state { bytes2matrix(plaintext) };
+    State state { bytes2matrix(plaintext) };
     add_round_key(state, round_keys[0]);
     sub_bytes(state);
     shift_rows(state);
@@ -27,7 +27,7 @@ void AES::encrypt_block(unsigned char* plaintext) {
 }
 
 void AES::decrypt_block(unsigned char* ciphertext) {
-    std::vector <std::vector <int>> state { bytes2matrix(ciphertext) };
+    State state { bytes2matrix(ciphertext) };
     add_round_key(state, round_keys[n_rounds]);
 
     for (size_t i = n_rounds-1; i>0; i--) {

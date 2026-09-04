@@ -1,4 +1,5 @@
 #include <vector>
+#include <array>
 #include <cassert>
 
 #include "constants.hpp"
@@ -7,15 +8,15 @@
 
 using namespace std;
 
-vector <vector <int>> bytes2matrix(unsigned char* text) {
-    vector <vector <int>> matrix(4, vector<int>(4));
+State bytes2matrix(unsigned char* text) {
+    State matrix {};
     for (size_t i=0; i<16; i++) {
         matrix[i/4][i%4] = static_cast<int>(text[i]);
     }
     return matrix;
 }
 
-void matrix2bytes(vector <vector <int>>& matrix, unsigned char* text) {
+void matrix2bytes(State& matrix, unsigned char* text) {
     assert(matrix.size() == 4 && matrix[0].size() == 4);
 
     for (size_t i=0; i<16; i++) {
@@ -23,7 +24,7 @@ void matrix2bytes(vector <vector <int>>& matrix, unsigned char* text) {
     }
 }
 
-void shift_rows(vector <vector <int>>& s) {
+void shift_rows(State& s) {
     int temp { s[0][1] };
     s[0][1] = s[1][1];
     s[1][1] = s[2][1];
@@ -40,7 +41,7 @@ void shift_rows(vector <vector <int>>& s) {
     s[0][3] = temp;
 }
 
-void inv_shift_rows(vector <vector <int>>& s) {
+void inv_shift_rows(State& s) {
     int temp { s[3][1] };
     s[3][1] = s[2][1];
     s[2][1] = s[1][1];
@@ -61,7 +62,7 @@ inline int xtime(int a) {
     return (a & 0x80)? (((a << 1) ^ 0x1B) & 0xFF) : (a << 1);
 }
 
-void mix_single_column(vector <int>& a) {
+void mix_single_column(StateColumn& a) {
     int t { a[0] ^ a[1] ^ a[2] ^ a[3] };
     int u { a[0] };
     a[0] ^= t ^ xtime(a[0] ^ a[1]);
@@ -70,13 +71,13 @@ void mix_single_column(vector <int>& a) {
     a[3] ^= t ^ xtime(a[3] ^ u);
 }
 
-void mix_columns(vector <vector <int>>& s) {
+void mix_columns(State& s) {
     for (auto& x : s) {
         mix_single_column(x);
     }
 }
 
-void inv_mix_columns(vector <vector <int>>& s) {
+void inv_mix_columns(State& s) {
     for (size_t i=0; i<4; i++) {
         int u { xtime(xtime(s[i][0] ^ s[i][2])) };
         int v { xtime(xtime(s[i][1] ^ s[i][3])) };
@@ -89,7 +90,12 @@ void inv_mix_columns(vector <vector <int>>& s) {
 }
 
 vector <vector <vector <int>>> expand_key(vector <unsigned char>& master_key) {  //assume master_key is 16-bytes
-    vector <vector <int>> key_columns { bytes2matrix(master_key.data()) };
+    State _key_columns { bytes2matrix(master_key.data()) };
+
+    vector <vector <int>> key_columns(4, vector <int>(4));
+    for (size_t i=0; i<16; i++) {
+        key_columns[i/4][i%4] = _key_columns[i/4][i%4];
+    }
     int iteration_size { 4 };
 
     int i { 1 };
@@ -133,7 +139,7 @@ vector <vector <vector <int>>> expand_key(vector <unsigned char>& master_key) { 
     return round_keys;
 }
 
-void add_round_key(vector <vector <int>>& s, vector <vector <int>>& k) {
+void add_round_key(State& s, vector <vector <int>>& k) {
     for (size_t i=0; i<4; i++) {
         for (size_t j=0; j<4; j++) {
             s[i][j] ^= k[i][j];
@@ -141,7 +147,7 @@ void add_round_key(vector <vector <int>>& s, vector <vector <int>>& k) {
     }
 }
 
-void sub_bytes(vector <vector<int>>& s, const array <int, 16*16> sbox) {
+void sub_bytes(State& s, const array <int, 16*16> sbox) {
     for (size_t i = 0; i < 4; i++) {
         for (size_t j = 0; j < 4; j++) {
             s[i][j] = sbox[s[i][j]];
