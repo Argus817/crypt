@@ -5,6 +5,6 @@
 using namespace std;
 
 void throwErrorCode(ErrorCodes code, string_view context) {
-    cerr << Errors[code] << context << endl;
+    cerr << Errors[code] << context << "; ";
     throw code;
 }
