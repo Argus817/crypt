@@ -7,7 +7,7 @@ using namespace std;
 
 vector <vector <int>> bytes2matrix(unsigned char* text) {
     vector <vector <int>> matrix(4, vector<int>(4));
-    for (int i=0; i<16; i++) {
+    for (size_t i=0; i<16; i++) {
         matrix[i/4][i%4] = static_cast<int>(text[i]);
     }
     return matrix;
@@ -16,7 +16,7 @@ vector <vector <int>> bytes2matrix(unsigned char* text) {
 void matrix2bytes(vector <vector <int>>& matrix, unsigned char* text) {
     assert(matrix.size() == 4 && matrix[0].size() == 4);
 
-    for (int i=0; i<16; i++) {
+    for (size_t i=0; i<16; i++) {
         text[i] = static_cast<unsigned char>(matrix[i/4][i%4]);
     }
 }
@@ -75,7 +75,7 @@ void mix_columns(vector <vector <int>>& s) {
 }
 
 void inv_mix_columns(vector <vector <int>>& s) {
-    for (int i=0; i<4; i++) {
+    for (size_t i=0; i<4; i++) {
         int u { xtime(xtime(s[i][0] ^ s[i][2])) };
         int v { xtime(xtime(s[i][1] ^ s[i][3])) };
         s[i][0] ^= u;
@@ -101,7 +101,7 @@ vector <vector <vector <int>>> expand_key(vector <unsigned char>& master_key) { 
             word[2] = word[3];
             word[3] = temp;
 
-            for (int k = 0; k < 4; k++) {
+            for (size_t k = 0; k < 4; k++) {
                 word[k] = s_box[word[k]];
             }
 
@@ -110,7 +110,7 @@ vector <vector <vector <int>>> expand_key(vector <unsigned char>& master_key) { 
         }
 
         const vector<int>& prev_word = key_columns[key_columns.size() - iteration_size];
-        for (int k = 0; k < 4; k++) {
+        for (size_t k = 0; k < 4; k++) {
             word[k] ^= prev_word[k];
         }
 
@@ -122,7 +122,7 @@ vector <vector <vector <int>>> expand_key(vector <unsigned char>& master_key) { 
 
     for (size_t r = 0; r < num_round_keys; r++) {
         vector<vector<int>> matrix(4, vector<int>(4));
-        for (int c = 0; c < 4; c++) {
+        for (size_t c = 0; c < 4; c++) {
             matrix[c] = key_columns[r * 4 + c];
         }
         round_keys.push_back(matrix);
@@ -132,16 +132,16 @@ vector <vector <vector <int>>> expand_key(vector <unsigned char>& master_key) { 
 }
 
 void add_round_key(vector <vector <int>>& s, vector <vector <int>>& k) {
-    for (int i=0; i<4; i++) {
-        for (int j=0; j<4; j++) {
+    for (size_t i=0; i<4; i++) {
+        for (size_t j=0; j<4; j++) {
             s[i][j] ^= k[i][j];
         }
     }
 }
 
-void sub_bytes(vector <vector<int>>& s, const vector <int>& sbox) {
-    for (int i = 0; i < 4; i++) {
-        for (int j = 0; j < 4; j++) {
+void sub_bytes(vector <vector<int>>& s, const array <int, 16*16> sbox) {
+    for (size_t i = 0; i < 4; i++) {
+        for (size_t j = 0; j < 4; j++) {
             s[i][j] = sbox[s[i][j]];
         }
     }
