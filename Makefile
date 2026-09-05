@@ -1,7 +1,7 @@
 # 1. Variables
 CXX         = g++
 CXXFLAGS    = -Wall -Wextra -std=c++23 -O2
-TARGET_EXEC = executable
+TARGET_EXEC = crypt
 
 # Directories
 SRC_DIR    = src

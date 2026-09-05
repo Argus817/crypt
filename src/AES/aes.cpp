@@ -15,7 +15,7 @@ void AES::encrypt_block(unsigned char* plaintext) {
     sub_bytes(state);
     shift_rows(state);
 
-    for (size_t i=1; i<n_rounds; i++) {
+    for (size_t i { 1 }; i < n_rounds; ++i) {
         mix_columns(state);
         add_round_key(state, round_keys[i]);
         sub_bytes(state);
@@ -30,7 +30,7 @@ void AES::decrypt_block(unsigned char* ciphertext) {
     State state { bytes2matrix(ciphertext) };
     add_round_key(state, round_keys[n_rounds]);
 
-    for (size_t i = n_rounds-1; i>0; i--) {
+    for (size_t i { n_rounds-1 }; i > 0; --i) {
         inv_shift_rows(state);
         sub_bytes(state, inv_s_box);
         add_round_key(state, round_keys[i]);
