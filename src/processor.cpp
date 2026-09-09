@@ -196,7 +196,7 @@ void process_dir(const fs::path& dirPath, string_view action) {
     for (const auto& entry : fs::directory_iterator(dirPath)) {
         if (fs::is_regular_file(entry.path())) {
             try {
-                threadpool.submit(process_file, entry.path(), action, cipher);
+                threadpool.submit(process_file, entry.path(), action, ref(cipher));
                 // process_file(entry.path(), action, cipher);
             }
             catch (const ErrorCodes err) {
