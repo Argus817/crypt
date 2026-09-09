@@ -1,6 +1,7 @@
 #include <iostream>
 #include <string>
 #include <filesystem>
+#include <chrono>
 
 #include "processor.hpp"
 
@@ -37,7 +38,11 @@ int main(int argc, char* argv[]) {
     cout << "Action verified: " << action << "\n";
     cout << "Target folder verified: " << fs::absolute(targetDir).string() << "\n";
 
+    auto start { chrono::high_resolution_clock::now() };
     process_dir(targetDir, action);
+    auto end { chrono::high_resolution_clock::now() };
+    auto duration { chrono::duration_cast<chrono::milliseconds>(end-start) };
+    cout << "Program finished in " << duration << endl;
 
     return 0;
 }

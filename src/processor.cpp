@@ -6,10 +6,11 @@
 #include <string_view>
 #include <chrono>
 
+#include "AES/constants.hpp"
 #include "AES/aes.hpp"
 #include "Error/error.hpp"
-#include "AES/constants.hpp"
 #include "hex.hpp"
+#include "util/threadpool.hpp"
 
 #include "processor.hpp"
 
@@ -190,11 +191,13 @@ void process_dir(const fs::path& dirPath, string_view action) {
     assert(fs::exists(dirPath) && fs::is_directory(dirPath));
 
     static AES cipher(KEY);
+    Threadpool threadpool(8);
 
     for (const auto& entry : fs::directory_iterator(dirPath)) {
         if (fs::is_regular_file(entry.path())) {
             try {
-                process_file(entry.path(), action, cipher);
+                threadpool.submit(process_file, entry.path(), action, cipher);
+                // process_file(entry.path(), action, cipher);
             }
             catch (const ErrorCodes err) {
                 cerr << entry.path().filename() << " failed!!" << endl;
