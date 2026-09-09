@@ -19,7 +19,7 @@ namespace fs = filesystem;
 
 inline vector <unsigned char> KEY(BLOCKSIZE, static_cast<unsigned char>(69));
 
-fs::path encrypt_filename(const fs::path& filepath, AES& cipher) {
+fs::path encrypt_filename(const fs::path& filepath) {
     string filename { filepath.filename().string() };
     size_t len { filename.length() };
     size_t remainder { len % BLOCKSIZE };
@@ -31,14 +31,14 @@ fs::path encrypt_filename(const fs::path& filepath, AES& cipher) {
     unsigned char* begin { reinterpret_cast<unsigned char*>(filename.data()) };
 
     for (size_t i { 0 }; i < filename.length(); i += BLOCKSIZE) {
-        cipher.encrypt_block(begin+i);
+        AES::encrypt_block(begin+i);
     }
 
     return filepath.parent_path() / (ucstrToHexString(len, begin)+".enc"s);
 }
 
-void encrypt_file(const fs::path& filepath, AES& cipher) {
-    fs::path newFilepath { encrypt_filename(filepath, cipher) };
+void encrypt_file(const fs::path& filepath) {
+    fs::path newFilepath { encrypt_filename(filepath) };
 
     ifstream infile(filepath, ios::binary);
     if (!infile.is_open()) {
@@ -75,7 +75,7 @@ void encrypt_file(const fs::path& filepath, AES& cipher) {
         }
 
         for (size_t i { 0 }; i < totalBytes; i += BLOCKSIZE) {
-            cipher.encrypt_block(&buffer[i]);
+            AES::encrypt_block(&buffer[i]);
         }
         outfile.write(reinterpret_cast<char*>(buffer.data()), totalBytes);
     }
@@ -85,7 +85,7 @@ void encrypt_file(const fs::path& filepath, AES& cipher) {
     fs::remove(filepath);
 }
 
-fs::path decrypt_filename(const fs::path& filepath, AES& cipher) {
+fs::path decrypt_filename(const fs::path& filepath) {
     string filename { filepath.stem().string() };
     string decoded { uchexstrToString(filename.length(), reinterpret_cast<unsigned char*>(filename.data())) };
 
@@ -97,7 +97,7 @@ fs::path decrypt_filename(const fs::path& filepath, AES& cipher) {
     size_t padding { 0 };
 
     for (size_t i { 0 }; i < iterations; ++i) {
-        cipher.decrypt_block(reinterpret_cast<unsigned char*>(&decoded[(iterations-1-i)*BLOCKSIZE]));
+        AES::decrypt_block(reinterpret_cast<unsigned char*>(&decoded[(iterations-1-i)*BLOCKSIZE]));
 
         if (i == 0) {
             padding = decoded[decoded.length()-1];
@@ -114,8 +114,8 @@ fs::path decrypt_filename(const fs::path& filepath, AES& cipher) {
     return filepath.parent_path() / decoded;
 }
 
-void decrypt_file(const fs::path& filepath, AES& cipher) {
-    fs::path newFilepath { decrypt_filename(filepath, cipher) };
+void decrypt_file(const fs::path& filepath) {
+    fs::path newFilepath { decrypt_filename(filepath) };
 
     ifstream infile(filepath, ios::binary);
     if (!infile.is_open()) {
@@ -138,7 +138,7 @@ void decrypt_file(const fs::path& filepath, AES& cipher) {
         size_t bytesRead { static_cast<size_t>(infile.gcount()) };
 
         for (size_t i { 0 }; i < bytesRead; i += BLOCKSIZE) {
-            cipher.decrypt_block(&buffer[i]);
+            AES::decrypt_block(&buffer[i]);
         }
 
         if (iterations == 0) {
@@ -152,17 +152,17 @@ void decrypt_file(const fs::path& filepath, AES& cipher) {
     fs::remove(filepath);
 }
 
-void process_file(const fs::path& filepath, string_view action, AES& cipher) {
+void process_file(const fs::path& filepath, string_view action) {
     auto start { chrono::high_resolution_clock::now() };
     assert(fs::exists(filepath) && fs::is_regular_file(filepath));
     string_view ext { filepath.extension().c_str() };
 
     if (action == "encrypt" && ext != ".enc") {
         cout << "Encrypting " << filepath.filename() << endl; 
-        encrypt_file(filepath, cipher);
+        encrypt_file(filepath);
     } else if (action == "decrypt" && ext == ".enc") {
         cout << "Decrypting " << filepath.filename() << endl;
-        decrypt_file(filepath, cipher);
+        decrypt_file(filepath);
     }
     else {
         return;
@@ -173,31 +173,30 @@ void process_file(const fs::path& filepath, string_view action, AES& cipher) {
     cout << " " << action << "ed in " << duration << "\n" << endl;
 }
 
-void process_dir_filename(const fs::path& dirPath, string_view action, AES& cipher) {
+void process_dir_filename(const fs::path& dirPath, string_view action) {
     assert(fs::exists(dirPath) && fs::is_directory(dirPath));
 
     string_view ext { dirPath.extension().c_str() };
     fs::path newDirPath;
     if (action == "encrypt" && ext != ".enc") {
-        newDirPath = encrypt_filename(dirPath, cipher);
+        newDirPath = encrypt_filename(dirPath);
     } else if (action == "decrypt" && ext == ".enc") {
-        newDirPath = decrypt_filename(dirPath, cipher);
+        newDirPath = decrypt_filename(dirPath);
     }
 
     fs::rename(dirPath, newDirPath);
 }
 
-void process_dir(const fs::path& dirPath, string_view action) {
+void process_dir_rec(const fs::path& dirPath, string_view action) {
     assert(fs::exists(dirPath) && fs::is_directory(dirPath));
 
-    static AES cipher(KEY);
     Threadpool threadpool(8);
 
     for (const auto& entry : fs::directory_iterator(dirPath)) {
         if (fs::is_regular_file(entry.path())) {
             try {
-                threadpool.submit(process_file, entry.path(), action, ref(cipher));
-                // process_file(entry.path(), action, cipher);
+                threadpool.submit(process_file, entry.path(), action);
+                // process_file(entry.path(), action);
             }
             catch (const ErrorCodes err) {
                 cerr << entry.path().filename() << " failed!!" << endl;
@@ -208,12 +207,17 @@ void process_dir(const fs::path& dirPath, string_view action) {
     for (const auto& entry : fs::directory_iterator(dirPath)) {
         if (fs::is_directory(entry.path())) {
             try {
-                process_dir(entry.path(), action);
-                process_dir_filename(entry.path(), action, cipher);
+                process_dir_rec(entry.path(), action);
+                process_dir_filename(entry.path(), action);
             }
             catch (const ErrorCodes err) {
                 cerr << entry.path().filename() << " failed!!" << endl;
             }
         }
     }
+}
+
+void process_dir(const fs::path& dirPath, string_view action) {
+    AES::set_key(KEY);
+    process_dir_rec(dirPath, action);
 }

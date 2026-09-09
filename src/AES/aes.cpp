@@ -7,7 +7,9 @@
 
 using namespace std;
 
-AES::AES(vector <unsigned char>& key) : round_keys{ expand_key(key) } {}
+void AES::set_key(vector<unsigned char>& key) {
+    round_keys = move(expand_key(key));
+}
 
 void AES::encrypt_block(unsigned char* plaintext) {
     State state { bytes2matrix(plaintext) };

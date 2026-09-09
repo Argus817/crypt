@@ -2,15 +2,16 @@
 
 class AES {
 private:
-    std::vector <std::vector <std::vector <int>>> round_keys;
+    inline static std::vector <std::vector <std::vector <int>>> round_keys;
 
 public:
-    AES(std::vector <unsigned char>& key);
-
-    void encrypt_block(
+    static void set_key(
+        std::vector<unsigned char>& key
+    );
+    static void encrypt_block(
         unsigned char* plaintext
     );
-    void decrypt_block(
+    static void decrypt_block(
         unsigned char* ciphertext
     );
 };
